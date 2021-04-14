@@ -2,9 +2,10 @@ import gym
 import numpy as np
 import time
 import pickle
-import matplotlib.pyplot as plt
 
 import value_iteration
+import policy_iteration
+import plotting
 
 SMALL_SIZE = 5
 MEDIUM_SIZE = 10
@@ -67,23 +68,6 @@ def generate_frozen_lake(size, p, seed):
     env.reset()
     return env
 
-
-def get_average_delta(deltas):
-    max_iteration = 0
-    for delta in deltas:
-        if len(delta) > max_iteration:
-            max_iteration = len(delta)
-
-
-    delta_array = np.zeros((len(deltas), max_iteration))
-    for i in range(len(deltas)):
-        delta_array[i] = np.pad(np.asarray(deltas[i]), (0, max_iteration - len(deltas[i])))
-
-    avg = np.mean(delta_array, 0)
-    std = np.std(delta_array, 0)
-    return avg, std
-
-
 def play_episodes(enviorment, n_episodes, policy, random=False):
     """
     This fucntion plays the given number of episodes given by following a policy or sample randomly from action_space.
@@ -141,94 +125,7 @@ def play_episodes(enviorment, n_episodes, policy, random=False):
 
     return wins, total_reward, average_reward
 
-def plot_vi_convergence_size(deltas: dict):
-
-    colors = ['b', 'g', 'y', 'r']
-    facecolors = ['lightblue', 'lightgreen', 'khaki', 'tomato']
-    alphas = [.6, .3, .2, .1]
-    i = 0
-
-    for size, values in deltas.items():
-        average_delta, std_delta = get_average_delta(values)
-        X = range(0, average_delta.size)
-        Y = average_delta
-        plt.plot(X, Y, color=colors[i], label=f"size:{size}")
-        plt.fill_between(X, Y - std_delta, Y + std_delta, facecolor=facecolors[i], alpha=alphas[i])
-        i += 1
-
-    plt.title(f"Value Iteration, Frozen Lake (10 seeds), p=0.8")
-    plt.xlabel("Iteration")
-    plt.ylabel("Average Delta")
-    plt.xlim(0, 1400)
-    plt.grid(b=True)
-    plt.legend()
-    plt.show()
-
-def plot_vi_convergence_p(deltas: dict):
-
-    colors = ['b', 'g', 'y', 'r']
-    facecolors = ['lightblue', 'lightgreen', 'khaki', 'tomato']
-    alphas = [.6, .3, .2, .1]
-    i = 0
-
-    for p, values in deltas.items():
-        average_delta, std_delta = get_average_delta(values)
-        X = range(0, average_delta.size)
-        Y = average_delta
-        plt.plot(X, Y, color=colors[i], label=f"p:{p}")
-        plt.fill_between(X, Y - std_delta, Y + std_delta, facecolor=facecolors[i], alpha=alphas[i])
-        i += 1
-
-    plt.title(f"Value Iteration, Frozen Lake (10 seeds), size=10")
-    plt.xlabel("Iteration")
-    plt.ylabel("Average Delta")
-    plt.xlim(0, 300)
-    plt.grid(b=True)
-    plt.legend()
-    plt.show()
-
-def plot_vi_convergence_d(deltas: dict):
-
-    colors = ['b', 'g', 'y', 'r']
-    facecolors = ['lightblue', 'lightgreen', 'khaki', 'tomato']
-    alphas = [.6, .3, .2, .1]
-    i = 0
-
-    for d, values in deltas.items():
-        average_delta, std_delta = get_average_delta(values)
-        X = range(0, average_delta.size)
-        Y = average_delta
-        plt.plot(X, Y, color=colors[i], label=f"discount:{d}")
-        plt.fill_between(X, Y - std_delta, Y + std_delta, facecolor=facecolors[i], alpha=alphas[i])
-        i += 1
-
-    plt.title(f"Value Iteration, Frozen Lake (10 seeds), size=10, p=0.8")
-    plt.xlabel("Iteration")
-    plt.ylabel("Average Delta")
-    plt.xlim(0, 200)
-    plt.grid(b=True)
-    plt.legend()
-    plt.show()
-
-def plot_vi_convergence_dr(rewards: dict):
-
-    X = rewards.keys()
-    Y = [np.mean(rewards[discount]) for discount in rewards.keys()]
-    err = [np.std(rewards[discount]) for discount in rewards.keys()]
-
-
-    plt.plot(X, Y, 'bo')
-    # plt.errorbar(X, Y, yerr=err)
-
-
-    plt.title(f"Value Iteration, Frozen Lake (10 seeds), size=10, p=0.8")
-    plt.xlabel("Discount Factor")
-    plt.ylabel("Average Total Reward")
-    plt.grid(b=True)
-    # plt.legend()
-    plt.show()
-
-
+##################################################
 
 def run_value_iteration():
 
@@ -342,6 +239,84 @@ def run_value_iteration():
         plot_vi_convergence_dr(rewards)
 
 
+def run_policy_iteration():
+
+    # Run PI across various problem sizes
+    if False:
+        convergence_times = {}
+        deltas = {}
+        for problem_size in PROBLEM_SIZES:
+            convergence_times[problem_size] = []
+            deltas[problem_size] = []
+            for seed in SEEDS:
+                print(f"Problem Size: {problem_size}, Seed: {seed}")
+                env = generate_frozen_lake(problem_size, p=0.8, seed=seed)
+                tic = time.time()
+                opt_V, opt_policy, delta = policy_iteration.policy_iteration(env, discount_factor=0.999, max_iteration=10000)
+                toc = time.time()
+                elapsed_time = (toc - tic) * 1000
+                convergence_times[problem_size].append(elapsed_time)
+                print (f"Time to converge: {elapsed_time: 0.3} ms")
+                deltas[problem_size].append(delta)
+
+        # Save the values from running
+        deltas_file_pi = open('params/policy_iteration/deltas', 'wb')
+        pickle.dump(deltas, deltas_file_pi)
+        times_file_pi = open('params/policy_iteration/times', 'wb')
+        pickle.dump(convergence_times, times_file_pi)
+
+    # Run policy iteration across various discount factors
+    if True:
+        convergence_times = {}
+        deltas = {}
+        policies = {}
+        rewards = {}
+        problem_size = MEDIUM_SIZE
+        p = 0.8
+        L = [0.60, 0.70, 0.80, 0.85, 0.90, 0.95, 0.99]
+        # L = [0.70, 0.80, 0.90, 0.99]
+        for discount in L:
+            convergence_times[discount] = []
+            deltas[discount] = []
+            policies[discount] = []
+            rewards[discount] = []
+            for seed in SEEDS:
+                print(f"p: {p}, Seed: {seed}")
+                env = generate_frozen_lake(problem_size, p=p, seed=seed)
+                tic = time.time()
+                opt_V, opt_policy, delta = policy_iteration.policy_iteration(env, discount_factor=discount, max_iteration=2000)
+                toc = time.time()
+                elapsed_time = (toc - tic) * 1000
+                convergence_times[discount].append(elapsed_time)
+                print(f"Time to converge: {elapsed_time: 0.3} ms")
+                deltas[discount].append(delta)
+                policies[discount].append(opt_policy)
+
+                wins, total_reward, average_reward = play_episodes(env, 300, opt_policy, False)
+                print(f"Average reward: {total_reward}")
+                rewards[discount].append(total_reward)
+
+            # Save the values from running
+            pickle.dump(deltas, open('params/policy_iteration/d_deltas', 'wb'))
+            pickle.dump(convergence_times, open('params/policy_iteration/d_times', 'wb'))
+            pickle.dump(policies, open('params/policy_iteration/d_policies', 'wb'))
+            pickle.dump(rewards, open('params/policy_iteration/d_rewards', 'wb'))
+
+    # Plot things
+    if True:
+        deltas = pickle.load(open('params/policy_iteration/d_deltas', 'rb'))
+
+        convergence_times = pickle.load(open('params/policy_iteration/times', 'rb'))
+
+        rewards = pickle.load(open('params/value_iteration/d_rewards', 'rb'))
+
+        for size in PROBLEM_SIZES:
+            print(f"Average time to converge: {np.mean(convergence_times[size])} ms, std: {np.std(convergence_times[size])} ms")
+        # plotting.plot_pi_convergence_size(deltas)
+        # plotting.plot_pi_convergence_d(deltas)
+        plotting.plot_pi_convergence_dr(rewards)
+
 
 ######
-run_value_iteration()
+# run_value_iteration()
+run_policy_iteration()
