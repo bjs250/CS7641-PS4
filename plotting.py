@@ -169,3 +169,73 @@ def plot_pi_convergence_dr(rewards: dict):
     plt.grid(b=True)
     # plt.legend()
     plt.show()
+
+def moving_average(x, w):
+    return np.convolve(x, np.ones(w), 'valid') / w
+
+def plot_q(rewards, w):
+
+    agg_rewards = {}
+
+    for seed, seed_dict in rewards[5].items():
+        for tuple, values in seed_dict.items():
+            final_value = moving_average(values, 1000)[-1]
+            if tuple not in agg_rewards.keys():
+                agg_rewards[tuple] = final_value
+            else:
+                agg_rewards[tuple] += final_value
+            # print(seed, tuple, moving_average(values, 1000)[-1])
+
+    norm_agg_rewards = {}
+    for tuple, value in agg_rewards.items():
+        norm_agg_rewards[tuple] = agg_rewards[tuple] / 10
+
+    sorted_norm_agg_rewards = {k: v for k, v in sorted(norm_agg_rewards.items(), key=lambda item: item[1])}
+
+    for k,v in sorted_norm_agg_rewards.items():
+        print(k, v)
+    # X = [tuple[0] for tuple, value in norm_agg_rewards.items()]
+    # Y = [value for tuple, value in norm_agg_rewards.items()]
+    # plt.plot(X, Y, 'bo')
+    #
+    #
+    # plt.title(f"Q Learning, Frozen Lake (10 seeds), size=5, p=0.8, w=1000")
+    # plt.xlabel("Episode")
+    # plt.ylabel("Average Total Reward")
+    # plt.grid(b=True)
+    # # plt.legend()
+    # plt.show()
+
+def get_average_reward(rewards: dict, size):
+    num_seeds = len(rewards[size].keys())
+    avg = [sum(x) for x in zip(*rewards[size].values())]
+    # avg = list()
+    # for seed, values in rewards[size].items():
+    #     if len(avg) == 0:
+    #         avg = values
+    #     else:
+    #         avg += values
+    return [x/num_seeds for x in avg]
+
+def plot_episode_rewards(rewards: dict, epsilons, w):
+
+    average_rewards = get_average_reward(rewards, 10)
+
+    X = range(w-1, len(average_rewards))
+    Y = moving_average(average_rewards, w)
+
+    plt.plot(X, Y, label="reward")
+
+    X = range(0, len(epsilons))
+    Y = epsilons
+
+    plt.plot(X, Y, label="epsilon")
+
+    plt.title(f"Q Learning, Frozen Lake (10 seeds), size=10, p=0.99, w=1000")
+    plt.xlabel("Episode")
+    plt.ylabel("Average Total Reward")
+    # plt.yticks([0.1, 0.2, 0.3, 0.4, 0.5])
+    # plt.ylim(0, 0.5)
+    plt.grid(b=True)
+    plt.legend()
+    plt.show()

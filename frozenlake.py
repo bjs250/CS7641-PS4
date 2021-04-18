@@ -5,13 +5,15 @@ import pickle
 
 import value_iteration
 import policy_iteration
+import q_learning
 import plotting
 
 SMALL_SIZE = 5
 MEDIUM_SIZE = 10
 LARGE_SIZE = 25
 EXTRA_LARGE_SIZE = 50
-PROBLEM_SIZES = [SMALL_SIZE, MEDIUM_SIZE, LARGE_SIZE, EXTRA_LARGE_SIZE]
+# PROBLEM_SIZES = [SMALL_SIZE, MEDIUM_SIZE, LARGE_SIZE, EXTRA_LARGE_SIZE]
+PROBLEM_SIZES = [SMALL_SIZE]
 SEEDS = range(0, 10)
 
 P = [0.8, 0.75, 0.70, 0.65]
@@ -316,7 +318,78 @@ def run_policy_iteration():
         # plotting.plot_pi_convergence_d(deltas)
         plotting.plot_pi_convergence_dr(rewards)
 
+def run_q_learning():
+
+    # decay_rates= [0.00005, 0.0005, 0.005, 0.05, 0.5]
+    # learning_rates = [0.01, 0.1, 0.5, 0.8]
+    # gammas = [0.9, 0.95, 0.99]
+
+    # Run QL HP tuning
+    if False:
+        convergence_times = {}
+        total_rewards = {}
+        for problem_size in PROBLEM_SIZES:
+            convergence_times[problem_size] = []
+            total_rewards[problem_size] = {}
+            for seed in SEEDS:
+                total_rewards[problem_size][seed] = {}
+                for learning_rate in  learning_rates:
+                    for gamma in gammas:
+                        for decay_rate in decay_rates:
+                            print(f"Problem Size: {problem_size}, Seed: {seed}, Learning Rate: {learning_rate}, Gamma {gamma}, Decay Rate: {decay_rate}")
+                            env = generate_frozen_lake(problem_size, p=0.8, seed=seed)
+                            tic = time.time()
+                            rewards = q_learning.q_learning(env, learning_rate=learning_rate, gamma=gamma, decay_rate=decay_rate)
+
+                            toc = time.time()
+                            elapsed_time = (toc - tic) * 1000
+                            convergence_times[problem_size].append(elapsed_time)
+                            print(f"Time to converge: {elapsed_time: 0.3} ms")
+                            # total_rewards[problem_size][seed][f"LR:{learning_rate},G:{gamma},DR:{decay_rate}"] = rewards
+                            total_rewards[problem_size][seed][(learning_rate, gamma, decay_rate)] = rewards
+
+        # Save the values from running
+        pickle.dump(total_rewards, open('params/q_learning/total_rewards', 'wb'))
+
+    gamma = 0.9999
+    learning_rate = 0.8
+    decay_rate = 0.0005
+    PROBLEM_SIZES = [MEDIUM_SIZE]
+    MAX_EPISODES = 25000
+
+    # Run QL
+    if False:
+        convergence_times = {}
+        total_rewards = {}
+        for problem_size in PROBLEM_SIZES:
+            convergence_times[problem_size] = []
+            total_rewards[problem_size] = {}
+            for seed in SEEDS:
+                print(f"Problem Size: {problem_size}, Seed: {seed}, Learning Rate: {learning_rate}, Gamma {gamma}, Decay Rate: {decay_rate}")
+                env = generate_frozen_lake(problem_size, p=0.99, seed=seed)
+                tic = time.time()
+                rewards, epsilons = q_learning.q_learning(env, learning_rate=learning_rate, gamma=gamma, decay_rate=decay_rate, total_episodes=MAX_EPISODES)
+
+                toc = time.time()
+                elapsed_time = (toc - tic) * 1000
+                convergence_times[problem_size].append(elapsed_time)
+                print(f"Time to converge: {elapsed_time: 0.3} ms")
+                total_rewards[problem_size][seed] = rewards
+
+        # Save the values from running
+        pickle.dump(total_rewards, open('params/q_learning/s_big_easy_total_rewards', 'wb'))
+        pickle.dump(epsilons, open('params/q_learning/s_big_easy_epsilons', 'wb'))
+
+
+    # Plot things
+    if True:
+        total_rewards = pickle.load(open('params/q_learning/s_big_easy_total_rewards', 'rb'))
+        epsilons = pickle.load(open('params/q_learning/s_big_easy_epsilons', 'rb'))
+
+        plotting.plot_episode_rewards(total_rewards, epsilons, 1000)
+
 
 ######
 # run_value_iteration()
-run_policy_iteration()
+# run_policy_iteration()
+run_q_learning()
