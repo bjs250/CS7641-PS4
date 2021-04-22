@@ -68,7 +68,7 @@ def generate_frozen_lake(size, p, seed):
     env = gym.make("FrozenLake-v0", desc=random_map)
     env.seed(0)
     env.reset()
-    return env
+    return env, random_map
 
 def play_episodes(enviorment, n_episodes, policy, random=False):
     """
@@ -388,8 +388,78 @@ def run_q_learning():
 
         plotting.plot_episode_rewards(total_rewards, epsilons, 1000)
 
+def get_policy(env,stateValue, lmbda=0.9):
+  policy = [0 for i in range(env.nS)]
+  for state in range(env.nS):
+    action_values = []
+    for action in range(env.nA):
+      action_value = 0
+      for i in range(len(env.P[state][action])):
+        prob, next_state, r, _ = env.P[state][action][i]
+        action_value += prob * (r + lmbda * stateValue[next_state][action])
+      action_values.append(action_value)
+    best_action = np.argmax(np.asarray(action_values))
+    policy[state] = best_action
+  return policy
+
+def get_vi_policy():
+    gamma = 0.9999
+    learning_rate = 0.8
+    decay_rate = 0.0005
+    PROBLEM_SIZES = [MEDIUM_SIZE]
+    MAX_EPISODES = 25000
+
+    problem_size = 10
+    seed = 20
+    env, random_map = generate_frozen_lake(problem_size, p=0.80, seed=seed)
+
+    # plotting.plot_frozen_lake(random_map)
+
+    opt_V, opt_Policy, delta = value_iteration.value_iteration(env, discount_factor=gamma)
+    # plotting.plot_lake_policy("Value Iteration", opt_Policy)
+
+    wins, total_reward, average_reward = play_episodes(env, 1000, opt_Policy, seed)
+    print(wins, total_reward, average_reward)
+
+def get_pi_policy():
+    problem_size = 10
+    seed = 20
+    env, random_map = generate_frozen_lake(problem_size, p=0.80, seed=seed)
+
+    # plotting.plot_frozen_lake(random_map)
+
+    opt_V, opt_policy, delta = policy_iteration.policy_iteration(env, discount_factor=0.999, max_iteration=10000)
+    # plotting.plot_lake_policy("Policy Iteration", opt_policy)
+
+    wins, total_reward, average_reward = play_episodes(env, 1000, opt_policy, seed)
+    print(wins, total_reward, average_reward)
+
+
+def get_ql_policy():
+    gamma = 0.9999
+    learning_rate = 0.8
+    decay_rate = 0.0005
+    PROBLEM_SIZES = [MEDIUM_SIZE]
+    MAX_EPISODES = 25000
+    problem_size = 10
+    seed = 20
+    env, random_map = generate_frozen_lake(problem_size, p=0.99, seed=seed)
+
+    # plotting.plot_frozen_lake(random_map)
+
+    rewards, epsilons, qtable = q_learning.q_learning(env, learning_rate=learning_rate, gamma=gamma, decay_rate=decay_rate,
+                                          total_episodes=MAX_EPISODES)
+    policy = get_policy(env, qtable, 0.99)
+    # plotting.plot_lake_policy("Q-learning", policy)
+
+    wins, total_reward, average_reward = play_episodes(env, 1000, policy, seed)
+    print(wins, total_reward, average_reward)
+
 
 ######
 # run_value_iteration()
 # run_policy_iteration()
-run_q_learning()
+# run_q_learning()
+# get_vi_policy()
+# get_pi_policy()
+# get_ql_policy()

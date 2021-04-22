@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 
 ###### CARTPOLE ######
 
@@ -316,3 +317,18 @@ def plot_episode_rewards(rewards: dict, epsilons, w):
     plt.grid(b=True)
     plt.legend()
     plt.show()
+
+def plot_lake_policy(algo, policy):
+    ax = sns.heatmap(np.asarray(policy).reshape(10,10))
+    plt.title(f"Policy: {algo}, 10x10")
+    plt.show()
+
+def plot_frozen_lake(random_map):
+    map = []
+    for row in random_map:
+        for value in row:
+            if value == 'H':
+                map.append(-1)
+            else:
+                map.append(1)
+    plot_lake_policy("Frozen Lake", map)

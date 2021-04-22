@@ -1,6 +1,6 @@
 import numpy as np
 
-def value_iteration(env, discount_factor=0.999, max_iteration=1000):
+def value_iteration(env, discount_factor=0.999, max_iteration=100000):
     """
     Algorithm to solve MPD.
 

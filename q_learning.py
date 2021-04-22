@@ -79,4 +79,4 @@ def q_learning(env, learning_rate=0.8, gamma=0.9, decay_rate=0.00005, total_epis
     print("Score over time: " + str(sum(rewards) / total_episodes))
     # print(qtable)
 
-    return rewards, epsilons
+    return rewards, epsilons, qtable
