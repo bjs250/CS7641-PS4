@@ -1,6 +1,83 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+###### CARTPOLE ######
+
+def plot_cartpole_vi_reward(rewards: list, w):
+
+    moving_average(rewards, w)
+
+    X = range(w-1, len(rewards))
+    Y = moving_average(rewards, w)
+
+    plt.plot(X, Y, label="epsilon")
+
+    plt.title(f"Value Iteration, Cartpole, w={w}")
+    plt.xlabel("Episode")
+    plt.ylabel("Average Total Reward")
+    plt.grid(b=True)
+    plt.legend()
+    plt.show()
+
+def plot_cartpole_vi_deltas(deltas: dict):
+
+    colors = ['b', 'g', 'y', 'r']
+    facecolors = ['lightblue', 'lightgreen', 'khaki', 'tomato']
+    alphas = [.6, .3, .2, .1]
+    i = 0
+
+    # colors = ['b']
+    # facecolors = ['lightblue']
+    # alphas = [.6]
+    # i = 0
+
+    for size, values in deltas.items():
+        average_delta, std_delta = get_average_delta_cartpole(values)
+        X = range(0, average_delta.size)
+        Y = average_delta
+        plt.plot(X, Y, color=colors[i], label=f"size:{size}")
+        plt.fill_between(X, Y - std_delta, Y + std_delta, facecolor=facecolors[i], alpha=alphas[i])
+        i += 1
+
+    plt.title(f"Value Iteration, Cartpole (10 seeds)")
+    plt.xlabel("Iteration")
+    plt.ylabel("Delta")
+    plt.xlim([0, 20])
+    plt.ylim([0, 30])
+    plt.xticks(range(0, 20, 1))
+    plt.grid(b=True)
+    plt.legend()
+    plt.show()
+
+
+    # X = range(0, len(deltas))
+    # Y = deltas
+    # plt.plot(X, Y)
+    # plt.title(f"Value Iteration, Cartpole (10 seeds)")
+    # plt.xlabel("Iteration")
+    # plt.ylabel("Delta")
+    # plt.grid(b=True)
+    # plt.legend()
+    # plt.show()
+
+#################3
+
+def get_average_delta_cartpole(runs:dict):
+    max_iteration = 0
+    for seed, values in runs.items():
+        if len(values) > max_iteration:
+            max_iteration = len(values)
+
+    delta_array = np.zeros((len(runs.keys()), max_iteration))
+    for i in range(len(runs.keys())):
+        delta_array[i] = np.pad(np.asarray(runs[i]), (0, max_iteration - len(runs[i])))
+
+    avg = np.mean(delta_array, 0)
+    std = np.std(delta_array, 0)
+    return avg, std
+
+
+
 def get_average_delta(deltas):
     max_iteration = 0
     for delta in deltas:
