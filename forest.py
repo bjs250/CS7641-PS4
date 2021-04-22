@@ -1,4 +1,4 @@
-from hiive.mdptoolbox.mdp import ValueIteration, PolicyIteration
+from hiive.mdptoolbox.mdp import ValueIteration, PolicyIteration, QLearning
 from hiive.mdptoolbox.example import forest
 
 import forest_plot
@@ -51,7 +51,24 @@ def policy_iteration():
 
     forest_plot.plot_pi_forest_convergence_p(rewards)
 
+def qlearning():
+    deltas = {}
+    rewards = {}
+    for size in [10, 20, 40, 80]:
+        P, R = forest(S=size, r1=1, r2=5, p=.1)
+        ql = QLearning(P, R, 0.90, epsilon_decay=.998)
+        ql.run()
+        delta = [ql.run_stats[i]['Error'] for i in range(len(ql.run_stats))]
+        reward = [ql.run_stats[i]['Reward'] for i in range(len(ql.run_stats))]
+        epilson = [ql.run_stats[i]['Epsilon'] for i in range(len(ql.run_stats))]
+        deltas[size] = delta
+        rewards[size] = reward
+        print(ql.policy)
 
-policy_iteration()
+    forest_plot.plot_ql_forest_convergence_size(deltas)
+    # forest_plot.plot_ql_forest_reward_size(rewards, epilson, 100)
+
+qlearning()
+# policy_iteration()
 # forest_plot.plot_vi_forest_convergence(deltas)
 # forest_plot.plot_vi_forest_convergence(rewards)
